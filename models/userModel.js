@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   phoneNumber: { type: String, required: true },
   role: { type: String, enum: ["provider", "customer", "other"], default: "customer" },
-  avatar: { type: String }
+  avatar: { type: String },
+  portfolio: { type: mongoose.Types.ObjectId, ref: 'Portfolio' }
 }, { timestamps: true });
 
 export default mongoose.model("User", userSchema);
