@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import portfolioRoutes from './routes/portfolioRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 dotenv.config();
 
 mongoose.connect(process.env.MONGO_URI)
@@ -16,9 +17,10 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use('/api/portfolio', portfolioRoutes);
-app.use("/api/services", serviceRoutes)
+app.use("/api/services", serviceRoutes);
+app.use("/api/order", orderRoutes);
 app.get("/", (req, res) => {
-  res.send("Server is running ✅ \n <h1>/api/auth/register </h1>\n <h1>/api/portfolio/create</h1>\n <h1>/api/auth/login </h1>");
+  res.send("Server is running ✅");
 });
 
 export default app;

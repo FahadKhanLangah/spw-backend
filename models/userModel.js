@@ -8,7 +8,9 @@ const userSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true },
   role: { type: String, enum: ["provider", "customer", "other"], default: "customer" },
   avatar: { type: String },
-  portfolio: { type: mongoose.Types.ObjectId, ref: 'Portfolio' }
+  portfolio: { type: mongoose.Types.ObjectId, ref: 'Portfolio' },
+  status: { type: String, enum: ["active", "inactive", "suspended", "pending"], default: "active" },
 }, { timestamps: true });
 
+userSchema.index({ email: 1 }, { unique: true });
 export default mongoose.model("User", userSchema);
