@@ -3,6 +3,111 @@ import Service from "../models/serviceModel.js";
 import userModel from "../models/userModel.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
+
+// ✅ Update provider earning goal
+export const updateGoal = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { totalEarning, totalDays, savingPercentage } = req.body;
+
+    const portfolio = await Portfolio.findOne({ user: userId });
+    if (!portfolio) return res.status(404).json({ message: "Portfolio not found" });
+
+    portfolio.goal = {
+      totalEarning,
+      totalDays,
+      savingPercentage,
+      startDate: Date.now()
+    };
+
+    await portfolio.save();
+
+    res.status(200).json({ message: "Goal updated successfully", goal: portfolio.goal });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating goal", error: error.message });
+  }
+};
+
+// ✅ Update provider service settings
+export const updateServiceSettings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { depositPercentage, minNoticePeriod } = req.body;
+
+    const portfolio = await Portfolio.findOne({ user: userId });
+    if (!portfolio) return res.status(404).json({ message: "Portfolio not found" });
+
+    portfolio.serviceSettings = {
+      depositPercentage: depositPercentage ?? portfolio.serviceSettings.depositPercentage,
+      minNoticePeriod: minNoticePeriod ?? portfolio.serviceSettings.minNoticePeriod
+    };
+
+    await portfolio.save();
+
+    res.status(200).json({ 
+      message: "Service settings updated successfully", 
+      serviceSettings: portfolio.serviceSettings 
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating service settings", error: error.message });
+  }
+};
+
+// ✅ Get provider settings (goal + serviceSettings)
+export const getProviderSettings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await Portfolio.findOne({ user: userId }).select("goal serviceSettings currency");
+
+    if (!portfolio) return res.status(404).json({ message: "Portfolio not found" });
+
+    res.status(200).json({
+      goal: portfolio.goal,
+      serviceSettings: portfolio.serviceSettings,
+      currency: portfolio.currency
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching provider settings", error: error.message });
+  }
+};
+
+
+// export const setGoal = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const { totalEarning, totalDays, savingPercentage } = req.body;
+
+//     let portfolio = await Portfolio.findOne({ _id: req.body.portfolioId, user: userId });
+
+//     if (!portfolio) {
+//       return res.status(404).json({ message: "Portfolio not found" });
+//     }
+
+//     portfolio.goal = { totalEarning, totalDays, savingPercentage, startDate: Date.now() };
+//     await portfolio.save();
+
+//     res.status(200).json({ message: "Goal set successfully", goal: portfolio.goal });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error setting goal", error: error.message });
+//   }
+// };
+
+
+export const getGoal = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await Portfolio.findOne({ user: userId }).select("goal currency");
+
+    if (!portfolio || !portfolio.goal) {
+      return res.status(404).json({ message: "No goal found" });
+    }
+
+    res.status(200).json({ goal: portfolio.goal, currency: portfolio.currency });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching goal", error: error.message });
+  }
+};
+
 export const createPortfolioWithService = async (req, res) => {
   try {
     const {
@@ -21,9 +126,18 @@ export const createPortfolioWithService = async (req, res) => {
       description,
       charge,
       meeting_options,
-      meeting_link
+      meeting_link,
+      // ✅ New fields for goals & service settings
+      totalEarning,
+      totalDays,
+      savingPercentage,
+      depositPercentage,
+      minNoticePeriod
     } = req.body;
+
     const userId = req.user.id;
+
+    // Images handling
     const portfolioImages = req.files['portfolioImages']?.map(file => ({
       url: file.path,
       public_id: file.filename
@@ -47,25 +161,46 @@ export const createPortfolioWithService = async (req, res) => {
       user: userId
     });
 
+    // Create portfolio
     const portfolio = await Portfolio.create({
       specialization,
       profilePic: profilePicData,
       portfolioImages,
       gender,
-      socialMedia: JSON.parse(socialMedia),
+      socialMedia: socialMedia ? JSON.parse(socialMedia) : [],
       workingMode,
       fixedAddress,
       mobileAddress,
       timeZone,
       currency,
-      workingDays: JSON.parse(workingDays),
-      service: service._id
+      workingDays: workingDays ? JSON.parse(workingDays) : [],
+      services: [service._id],   // ✅ updated to array
+
+      user: userId,
+
+      // ✅ Include goal if provided
+      goal: totalEarning && totalDays && savingPercentage ? {
+        totalEarning,
+        totalDays,
+        savingPercentage,
+        startDate: Date.now()
+      } : {},
+
+      // ✅ Include service settings if provided
+      serviceSettings: {
+        depositPercentage: depositPercentage || 0,
+        minNoticePeriod: minNoticePeriod || 0
+      }
     });
 
     // Update user with portfolio reference
     await userModel.findByIdAndUpdate(userId, { portfolio: portfolio._id });
 
-    res.status(201).json({ message: "Portfolio and Service created", portfolio, service });
+    res.status(201).json({
+      message: "Portfolio and Service created",
+      portfolio,
+      service
+    });
 
   } catch (err) {
     console.error(err);

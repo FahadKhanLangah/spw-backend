@@ -1,5 +1,5 @@
 import express from "express";
-import { createPortfolioWithService, getUserProfile, updatePortfolioWithService } from "../controllers/portfolioController.js";
+import { createPortfolioWithService, getGoal, getProviderSettings, getUserProfile, updateGoal, updatePortfolioWithService, updateServiceSettings } from "../controllers/portfolioController.js";
 import upload from "../middlewares/uploadMiddleware.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 
@@ -24,5 +24,17 @@ router.put(
   ]),
   updatePortfolioWithService
 );
+router.put(
+  "/update-goal",
+  authMiddleware,
+  updateGoal
+);
+router.put(
+  "/update-service-setting",
+  authMiddleware,
+  updateServiceSettings
+);
+router.get('/get-my-goals', authMiddleware, getGoal);
+router.get('/get-my-setting', authMiddleware, getProviderSettings);
 
 export default router;
